@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  base: '/insect-flash/',
+  base: '/kawaii-shiru-zukan/',
   plugins: [react(), tailwindcss()],
   build: {
     target: 'es2020',

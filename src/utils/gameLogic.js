@@ -61,7 +61,16 @@ const LEVEL_TABLE = [
   { digits:3, count:6, ms:1100, label:'3けた 6こ', world:3 },
   { digits:3, count:7, ms:1200, label:'3けた 7こ', world:3 },
   { digits:3, count:7, ms:1000, label:'3けた 7こ', world:3 },
-  { digits:3, count:8, ms:900,  label:'3けた 8こ', world:3 }, // Lv59
+  { digits:3, count:8, ms:1200, label:'3けた 8こ', world:3 }, // Lv59
+  { digits:3, count:8, ms:1100, label:'3けた 8こ', world:3 }, // Lv60
+  { digits:3, count:8, ms:1000, label:'3けた 8こ', world:3 }, // Lv61
+  { digits:3, count:9, ms:1300, label:'3けた 9こ', world:3 }, // Lv62
+  { digits:3, count:9, ms:1100, label:'3けた 9こ', world:3 }, // Lv63
+  { digits:3, count:9, ms:1000, label:'3けた 9こ', world:3 }, // Lv64
+  { digits:3, count:10, ms:1300, label:'3けた 10こ', world:3 }, // Lv65
+  { digits:3, count:10, ms:1200, label:'3けた 10こ', world:3 }, // Lv66
+  { digits:3, count:10, ms:1100, label:'3けた 10こ', world:3 }, // Lv67
+  { digits:3, count:10, ms:1000, label:'3けた 10こ', world:3 }, // Lv68 ← GOAL
 ];
 
 export const TOTAL_LEVELS = LEVEL_TABLE.length;

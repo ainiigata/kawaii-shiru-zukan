@@ -140,33 +140,27 @@ export default function LevelSelectScreen({ state, onSelect, onBack }) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 7 }}>
                 {levels.map(lv => {
                   const stars = levelStars[String(lv)] || 0;
-                  const locked = lv > currentLevel;
                   const cfg = getLevelConfig(lv);
                   const isPerfect = stars === 3;
 
                   return (
                     <button
                       key={lv}
-                      onClick={() => !locked && onSelect(lv)}
-                      disabled={locked}
+                      onClick={() => onSelect(lv)}
                       style={{
                         borderRadius: 'var(--radius-md)',
                         padding: '10px 4px',
-                        border: `1.5px solid ${locked ? '#e5e7eb' : isPerfect ? '#fbbf24' : wc.border}`,
-                        background: locked
-                          ? '#f9fafb'
-                          : isPerfect
+                        border: `1.5px solid ${isPerfect ? '#fbbf24' : wc.border}`,
+                        background: isPerfect
                           ? 'linear-gradient(135deg, #fef9c3, #fef3c7)'
                           : stars > 0
                           ? wc.accentLight
                           : 'white',
-                        opacity: locked ? 0.45 : 1,
-                        cursor: locked ? 'not-allowed' : 'pointer',
+                        opacity: 1,
+                        cursor: 'pointer',
                         display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 3,
-                        boxShadow: locked
-                          ? 'none'
-                          : isPerfect
+                        boxShadow: isPerfect
                           ? `0 3px 10px rgba(251,191,36,0.4), 0 1px 3px rgba(0,0,0,0.06)`
                           : `0 1px 4px rgba(0,0,0,0.06)`,
                         transition: 'transform 0.12s ease, box-shadow 0.12s ease',
@@ -174,19 +168,13 @@ export default function LevelSelectScreen({ state, onSelect, onBack }) {
                         WebkitTapHighlightColor: 'transparent',
                       }}
                     >
-                      {locked ? (
-                        <span style={{ fontSize: '1.1rem' }}>🔒</span>
-                      ) : (
-                        <>
-                          <span style={{ fontSize: 13, fontWeight: 900, color: isPerfect ? '#d97706' : wc.accent }}>
-                            Lv{lv}
-                          </span>
-                          <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 700 }}>{cfg.count}こ</span>
-                          <div style={{ fontSize: 10, letterSpacing: -1 }} aria-label={`${stars}つぼし`}>
-                            {'⭐'.repeat(stars)}{'☆'.repeat(3 - stars)}
-                          </div>
-                        </>
-                      )}
+                      <span style={{ fontSize: 13, fontWeight: 900, color: isPerfect ? '#d97706' : wc.accent }}>
+                        Lv{lv}
+                      </span>
+                      <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 700 }}>{cfg.count}こ</span>
+                      <div style={{ fontSize: 10, letterSpacing: -1 }} aria-label={`${stars}つぼし`}>
+                        {'⭐'.repeat(stars)}{'☆'.repeat(3 - stars)}
+                      </div>
                     </button>
                   );
                 })}

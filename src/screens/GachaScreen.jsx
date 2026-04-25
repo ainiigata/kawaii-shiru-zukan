@@ -944,7 +944,7 @@ export default function GachaScreen({ state, onBack, onPull }) {
             <div className="w-full bg-green-50 border-2 border-green-400 rounded-2xl p-4 text-center"
                  style={{ animation: 'slideUpAnim 0.4s ease 0.2s both' }}>
               <div className="text-2xl mb-1">🔍</div>
-              <p className="text-green-700 font-black">シールずかんに登録しました！</p>
+              <p className="text-green-700 font-black">シール帳に登録しました！</p>
               <p className="text-green-600 text-sm">{state.collection.length}まい目をゲット！</p>
             </div>
           ) : (

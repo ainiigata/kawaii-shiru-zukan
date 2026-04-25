@@ -40,7 +40,7 @@ export default function HomeScreen({ state, onPlay, onEncyclopedia, onGacha, onS
         className="text-2xl font-black tracking-tight animate-fade-in"
         style={{ color: 'var(--pink-800)', letterSpacing: '-0.02em' }}
       >
-        かわいいシールずかん
+        かわいいシール帳
       </h1>
 
       {/* シールショーケース */}
@@ -92,7 +92,7 @@ export default function HomeScreen({ state, onPlay, onEncyclopedia, onGacha, onS
         style={{ boxShadow: 'var(--shadow-md)' }}
       >
         <div className="flex justify-between text-sm font-bold mb-2" style={{ color: 'var(--pink-600)' }}>
-          <span>シールずかん</span>
+          <span>シール帳</span>
           <span>{owned}/{total}まい</span>
         </div>
         <div className="w-full rounded-full h-3.5 overflow-hidden" style={{ background: 'var(--pink-100)' }}>
@@ -181,7 +181,7 @@ export default function HomeScreen({ state, onPlay, onEncyclopedia, onGacha, onS
               boxShadow: '0 4px 0 var(--purple-600), var(--shadow-glow-purple)',
             }}
           >
-            シールずかん
+            シール帳
           </button>
           <button
             onClick={onGacha}

@@ -55,7 +55,7 @@ export default function EncyclopediaScreen({ state, onBack }) {
           >←</button>
           <div>
             <h2 className="font-black text-lg leading-none" style={{ color: 'var(--pink-800)' }}>
-              シールずかん
+              シール帳
             </h2>
             <p className="text-xs font-bold mt-0.5" style={{ color: '#9ca3af' }}>
               {totalOwned}/{totalAll} まい

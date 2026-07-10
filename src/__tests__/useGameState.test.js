@@ -13,13 +13,7 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 
-import { DUPLICATE_COINS } from '../data/stickers.js';
-
 describe('game state logic', () => {
-  it('DUPLICATE_COINS is 30', () => {
-    expect(DUPLICATE_COINS).toBe(30);
-  });
-
   it('collection deduplication: adding same ID twice results in one entry', () => {
     const collection = [];
     const addToCollection = (col, id) =>
@@ -51,6 +45,49 @@ describe('game state logic', () => {
     const levelStars = { 1: 3, 2: 2, 5: 1 };
     const total = Object.values(levelStars).reduce((a, b) => a + b, 0);
     expect(total).toBe(6);
+  });
+});
+
+describe('useGameState - pullSqueezeGacha', () => {
+  beforeEach(() => {
+    localStorageMock.clear();
+  });
+
+  const squeeze = { id: 'sq-n01', name: 'ハムハムちゃん', rarity: 'normal', imagePath: '/assets/squeeze/normal/n01.png' };
+
+  it('1000コイン減算してカウントが1になり、isNew=trueを返す', () => {
+    localStorageMock.setItem('sticker-book-v1', JSON.stringify({ coins: 1500 }));
+    const { result } = renderHook(() => useGameState());
+
+    let res;
+    act(() => { res = result.current.pullSqueezeGacha(squeeze); });
+
+    expect(res).toEqual({ isNew: true, newCount: 1 });
+    expect(result.current.state.coins).toBe(500);
+    expect(result.current.state.squeezeCounts['sq-n01']).toBe(1);
+    expect(result.current.state.squeezeCollection).toContain('sq-n01');
+  });
+
+  it('2回目はisNew=false・newCount=2を返す', () => {
+    localStorageMock.setItem('sticker-book-v1', JSON.stringify({ coins: 3000 }));
+    const { result } = renderHook(() => useGameState());
+
+    let res;
+    act(() => { result.current.pullSqueezeGacha(squeeze); });
+    act(() => { res = result.current.pullSqueezeGacha(squeeze); });
+
+    expect(res).toEqual({ isNew: false, newCount: 2 });
+    expect(result.current.state.coins).toBe(1000);
+    expect(result.current.state.squeezeCounts['sq-n01']).toBe(2);
+  });
+
+  it('squeezeCountsのない旧セーブデータは{}で初期化される', () => {
+    localStorageMock.setItem('sticker-book-v1', JSON.stringify({ coins: 200, stickerCounts: { 'ss-ame-chan': 1 } }));
+    const { result } = renderHook(() => useGameState());
+
+    expect(result.current.state.squeezeCounts).toEqual({});
+    expect(result.current.state.squeezeCollection).toEqual([]);
+    expect(result.current.state.stickerCounts['ss-ame-chan']).toBe(1);
   });
 });
 

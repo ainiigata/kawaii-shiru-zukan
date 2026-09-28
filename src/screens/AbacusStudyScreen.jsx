@@ -94,6 +94,7 @@ export default function AbacusStudyScreen({ onExit, onComplete, existingRecords 
     if (!current || current.status === 'result' || !result) return;
     audio().stopBgm();
     setBgmOn(false);
+    setSoundNotice('');
     const completed = { ...current, status: 'result', result, reported: false };
     commit(completed);
     reportResult(completed);
@@ -112,6 +113,7 @@ export default function AbacusStudyScreen({ onExit, onComplete, existingRecords 
     setCancelDialog(null);
     audio().stopBgm();
     setBgmOn(false);
+    setSoundNotice('');
     if (actualReason === 'time_up' && alarmOn && !document.hidden) {
       void audio().playAlarm();
       try { navigator.vibrate?.([180, 90, 180]); } catch { /* optional device feature */ }
@@ -157,6 +159,7 @@ export default function AbacusStudyScreen({ onExit, onComplete, existingRecords 
       if (!isVisible) {
         audioRef.current?.stopAll();
         setBgmOn(false);
+        setSoundNotice('');
       } else {
         setClockNow(Date.now());
       }
@@ -273,6 +276,7 @@ export default function AbacusStudyScreen({ onExit, onComplete, existingRecords 
       commit(null);
       audioRef.current?.stopAll();
       setBgmOn(false);
+      setSoundNotice('');
       if (destination === 'home') onExit?.();
       return;
     }
@@ -284,6 +288,7 @@ export default function AbacusStudyScreen({ onExit, onComplete, existingRecords 
     commit(null);
     audioRef.current?.stopAll();
     setBgmOn(false);
+    setSoundNotice('');
     setCancelDialog(null);
     setFeedback(null);
     setErrors({});
@@ -456,9 +461,9 @@ export default function AbacusStudyScreen({ onExit, onComplete, existingRecords 
           <summary>🔊 おとの設定</summary>
           <div className="ab-sound-options">
             <button type="button" aria-pressed={bgmOn} onClick={toggleBgm}>BGM {bgmOn ? 'オン' : 'オフ'}</button>
-            <button type="button" aria-pressed={effectsOn} onClick={() => { setEffectsOn(value => !value); audio().stopAll(); setBgmOn(false); }}>効果音 {effectsOn ? 'オン' : 'オフ'}</button>
+            <button type="button" aria-pressed={effectsOn} onClick={() => { setEffectsOn(value => !value); audio().stopAll(); setBgmOn(false); setSoundNotice(''); }}>効果音 {effectsOn ? 'オン' : 'オフ'}</button>
             <button type="button" aria-pressed={alarmOn} onClick={() => setAlarmOn(value => !value)}>終了チャイム {alarmOn ? 'オン' : 'オフ'}</button>
-            <button type="button" className="ab-preview" disabled={!alarmOn} onClick={() => { void audio().playAlarm(); setBgmOn(false); }}>終了音をためす</button>
+            <button type="button" className="ab-preview" disabled={!alarmOn} onClick={() => { void audio().playAlarm(); setBgmOn(false); setSoundNotice(''); }}>終了音をためす</button>
           </div>
           <p className="ab-tiny">BGMは自分でオンにしたときだけ流れます。画面を閉じると止まります。</p>
           {soundNotice && <p role="status" className="ab-sound-notice">{soundNotice}</p>}

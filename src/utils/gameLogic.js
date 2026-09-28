@@ -1,4 +1,6 @@
-// 59レベル分のテーブル
+import { EXAM_BY_LEVEL, EXAM_QUESTIONS, EXAM_PASS_COUNT } from '../data/examStandards.js';
+
+// 68レベル分のテーブル。59までは検定の節目を含み、60〜68は元の上級コースを残す。
 const LEVEL_TABLE = [
   // 1桁
   { digits:1, count:2, ms:2000, label:'1けた 2こ', world:1 },  // Lv1
@@ -61,7 +63,7 @@ const LEVEL_TABLE = [
   { digits:3, count:6, ms:1100, label:'3けた 6こ', world:3 },
   { digits:3, count:7, ms:1200, label:'3けた 7こ', world:3 },
   { digits:3, count:7, ms:1000, label:'3けた 7こ', world:3 },
-  { digits:3, count:8, ms:1200, label:'3けた 8こ', world:3 }, // Lv59
+  { digits:3, count:8, ms:900,  label:'3けた 8こ', world:3 }, // Lv59
   { digits:3, count:8, ms:1100, label:'3けた 8こ', world:3 }, // Lv60
   { digits:3, count:8, ms:1000, label:'3けた 8こ', world:3 }, // Lv61
   { digits:3, count:9, ms:1300, label:'3けた 9こ', world:3 }, // Lv62
@@ -70,14 +72,20 @@ const LEVEL_TABLE = [
   { digits:3, count:10, ms:1300, label:'3けた 10こ', world:3 }, // Lv65
   { digits:3, count:10, ms:1200, label:'3けた 10こ', world:3 }, // Lv66
   { digits:3, count:10, ms:1100, label:'3けた 10こ', world:3 }, // Lv67
-  { digits:3, count:10, ms:1000, label:'3けた 10こ', world:3 }, // Lv68 ← GOAL
+  { digits:3, count:10, ms:1000, label:'3けた 10こ', world:3 }, // Lv68
 ];
 
 export const TOTAL_LEVELS = LEVEL_TABLE.length;
 
 export function getLevelConfig(level) {
   const idx = Math.max(0, Math.min(level - 1, LEVEL_TABLE.length - 1));
-  return { ...LEVEL_TABLE[idx], level };
+  const base = LEVEL_TABLE[idx];
+  const exam = EXAM_BY_LEVEL[idx + 1];
+  const digits = exam?.digits ?? base.digits;
+  const count = exam?.count ?? base.count;
+  const totalMs = exam ? exam.totalSeconds * 1000 : base.ms * count;
+  return { ...base, digits, count, level: idx + 1, totalMs, ms: totalMs / count,
+    label: `${digits}けた ${count}口`, examGrade: exam?.grade ?? null };
 }
 
 function randomNum(digits) {
@@ -116,10 +124,38 @@ export const WORLD_COLORS = {
 };
 
 // 1回のプレイで獲得できるコイン
-// 初回: 最大300コイン、2回目以降: 最大100コイン（正解数に比例）
+// レベル35以上: 何回やっても正解数×160コイン（5問全正解=800）
+// レベル34: 何回やってもコインが減らない（初回と同じ300×2=最大600）
+// レベル33: 2倍コイン、最大600（回数で減少あり）
+// 最上位レベル: 常に最大300コイン
+// それ以外: 初回300、2回目150、3回目75、4回目以降50固定（正解数に比例）
 export function calcPlayReward(correctCount, playCount = 0, isMaxLevel = false, level = 1) {
-  const baseMax = playCount === 0 ? 300 : 100;
-  return Math.round((correctCount / QUESTIONS_PER_LEVEL) * baseMax);
+  const effectivePlayCount = level >= 34 ? 0 : playCount;
+  const rawBaseMax = isMaxLevel ? 300 : Math.max(50, Math.round(300 / Math.pow(2, effectivePlayCount)));
+  const baseMax = level >= 35 ? 400 : rawBaseMax;
+  const base = Math.round((correctCount / QUESTIONS_PER_LEVEL) * baseMax);
+  const multiplier = level >= 33 ? 2 : 1;
+  return Math.min(base * multiplier, MAX_COINS_PER_PLAY);
 }
 
 export function starsCoins(stars) { return [0, 3, 6, 10][stars] || 0; }
+
+// 空白も含めて合計時間を配分。最後の数字には末尾の空白を付けない。
+export function getFlashFrame(config, elapsedMs) {
+  if (elapsedMs >= config.totalMs) return { done: true };
+  const slotMs = config.totalMs / config.count;
+  const index = Math.min(config.count - 1, Math.floor(Math.max(0, elapsedMs) / slotMs));
+  const blankMs = Math.min(100, slotMs * 0.15);
+  const visible = index === config.count - 1 || elapsedMs - index * slotMs < slotMs - blankMs;
+  return { done: false, index, visible };
+}
+
+export function getSessionRules(level, mode = 'practice') {
+  const exam = mode === 'exam' && Boolean(getLevelConfig(level).examGrade);
+  return { mode: exam ? 'exam' : 'practice', questions: exam ? EXAM_QUESTIONS : QUESTIONS_PER_LEVEL,
+    passCount: exam ? EXAM_PASS_COUNT : 3, input: exam ? 'number' : 'choices' };
+}
+
+export function sessionStars(correct, total) {
+  return correct === total ? 3 : correct / total >= 0.8 ? 2 : correct / total >= 0.6 ? 1 : 0;
+}

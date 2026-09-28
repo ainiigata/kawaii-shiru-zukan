@@ -56,7 +56,7 @@ describe('useGameState - pullSqueezeGacha', () => {
   const squeeze = { id: 'sq-n01', name: 'ハムハムちゃん', rarity: 'normal', imagePath: '/assets/squeeze/normal/n01.png' };
 
   it('1000コイン減算してカウントが1になり、isNew=trueを返す', () => {
-    localStorageMock.setItem('sticker-book-v1', JSON.stringify({ coins: 1500 }));
+    localStorageMock.setItem('sticker-book-v2', JSON.stringify({ coins: 1500 }));
     const { result } = renderHook(() => useGameState());
 
     let res;
@@ -69,7 +69,7 @@ describe('useGameState - pullSqueezeGacha', () => {
   });
 
   it('2回目はisNew=false・newCount=2を返す', () => {
-    localStorageMock.setItem('sticker-book-v1', JSON.stringify({ coins: 3000 }));
+    localStorageMock.setItem('sticker-book-v2', JSON.stringify({ coins: 3000 }));
     const { result } = renderHook(() => useGameState());
 
     let res;
@@ -82,7 +82,7 @@ describe('useGameState - pullSqueezeGacha', () => {
   });
 
   it('squeezeCountsのない旧セーブデータは{}で初期化される', () => {
-    localStorageMock.setItem('sticker-book-v1', JSON.stringify({ coins: 200, stickerCounts: { 'ss-ame-chan': 1 } }));
+    localStorageMock.setItem('sticker-book-v2', JSON.stringify({ coins: 200, stickerCounts: { 'ss-ame-chan': 1 } }));
     const { result } = renderHook(() => useGameState());
 
     expect(result.current.state.squeezeCounts).toEqual({});
@@ -101,10 +101,10 @@ describe('useGameState - updateBookPage', () => {
     const stickers = [{ stickerId: 'ss-ame-chan', x: 0.5, y: 0.5, scale: 1 }];
 
     act(() => {
-      result.current.updateBookPage(0, stickers);
+      result.current.updateBookPage(0, { placed: stickers });
     });
 
-    expect(result.current.state.bookPages[0]).toEqual(stickers);
+    expect(result.current.state.bookPages[0].placed).toEqual(stickers);
   });
 
   it('does not change state when pageIndex is -1 (out-of-range)', () => {
@@ -118,12 +118,12 @@ describe('useGameState - updateBookPage', () => {
     expect(result.current.state.bookPages).toEqual(before);
   });
 
-  it('does not change state when pageIndex is 5 (out-of-range)', () => {
+  it('does not change state when pageIndex is 10 (out-of-range)', () => {
     const { result } = renderHook(() => useGameState());
     const before = result.current.state.bookPages;
 
     act(() => {
-      result.current.updateBookPage(5, []);
+      result.current.updateBookPage(10, []);
     });
 
     expect(result.current.state.bookPages).toEqual(before);

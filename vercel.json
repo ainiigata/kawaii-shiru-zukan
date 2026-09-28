@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/kawaii-shiru-zukan/:path*",
+      "destination": "/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/insects/(.*)",

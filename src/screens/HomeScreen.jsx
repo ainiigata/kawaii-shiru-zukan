@@ -1,27 +1,9 @@
+import GrowthCard from '../components/GrowthCard.jsx';
+import MyRoom from '../components/MyRoom.jsx';
 import { STICKERS } from '../data/stickers.js';
-import { GACHA_COST, SQUEEZE_GACHA_COST } from '../utils/gameLogic.js';
+import { GACHA_COST, SQUEEZE_GACHA_COST, TOTAL_LEVELS } from '../utils/gameLogic.js';
 
-const stickerMap = Object.fromEntries(STICKERS.map(s => [s.id, s]));
-
-// トップ画面に浮かべるシール（上段・中段・下段）
-const SHOWCASE = [
-  { id: 'nm-quokka',       x: '1%',  y: '2%',  size: 68, rotate: -12, delay: '0s'   },
-  { id: 'sp-velvet-bunny', x: '22%', y: '0%',  size: 64, rotate:   7, delay: '0.4s' },
-  { id: 'nm-mendako',      x: '43%', y: '2%',  size: 66, rotate:  -5, delay: '0.8s' },
-  { id: 'nm-kitsune',      x: '64%', y: '0%',  size: 62, rotate:  14, delay: '0.2s' },
-  { id: 'bd-ghost',        x: '83%', y: '3%',  size: 60, rotate:  -8, delay: '1.1s' },
-  { id: 'ss-ame-chan',     x: '0%',  y: '40%', size: 58, rotate:  11, delay: '0.6s' },
-  { id: 'mm-cream-soda',   x: '20%', y: '38%', size: 62, rotate: -14, delay: '0.9s' },
-  { id: 'ws-neko-chan',    x: '41%', y: '41%', size: 60, rotate:   6, delay: '0.1s' },
-  { id: 'sp-velvet-cat',   x: '62%', y: '38%', size: 58, rotate: -10, delay: '1.3s' },
-  { id: 'os-axolotl',      x: '82%', y: '40%', size: 56, rotate:  13, delay: '0.5s' },
-  { id: 'nm-axolotl',      x: '7%',  y: '74%', size: 58, rotate:  -7, delay: '0.7s' },
-  { id: 'bd-crystal',      x: '29%', y: '72%', size: 60, rotate:   9, delay: '1.0s' },
-  { id: 'sp-puni-animals', x: '52%', y: '74%', size: 58, rotate: -11, delay: '0.3s' },
-  { id: 'nm-kappa',        x: '76%', y: '72%', size: 56, rotate:   4, delay: '1.4s' },
-];
-
-export default function HomeScreen({ state, onPlay, onEncyclopedia, onGacha, onStickerBook, onExchange, onSqueezeGacha, onSqueezeShelf }) {
+export default function HomeScreen({ state, onPlay, onStudy, onEncyclopedia, onGacha, onStickerBook, onExchange, onSqueezeGacha, onSqueezeShelf, onUpdateRoom, today, onClaimLogin, onGrowth, storageError }) {
   const owned = state.collection.length;
   const total = STICKERS.length;
   const pct = Math.round((owned / total) * 100);
@@ -43,34 +25,11 @@ export default function HomeScreen({ state, onPlay, onEncyclopedia, onGacha, onS
         かわいいシール帳
       </h1>
 
-      {/* シールショーケース */}
-      <div
-        className="animate-fade-in"
-        style={{ position: 'relative', width: '100%', maxWidth: 420, height: 185, flexShrink: 0, margin: '8px 0' }}
-      >
-        {SHOWCASE.map((s) => {
-          const sticker = stickerMap[s.id];
-          if (!sticker) return null;
-          return (
-            <img
-              key={s.id}
-              src={sticker.imagePath}
-              alt={sticker.name}
-              style={{
-                position: 'absolute',
-                left: s.x, top: s.y,
-                width: s.size, height: s.size,
-                objectFit: 'contain',
-                '--rot': `${s.rotate}deg`,
-                animation: `stickerFloat 3s ease-in-out infinite`,
-                animationDelay: s.delay,
-                filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.15))',
-                pointerEvents: 'none',
-              }}
-            />
-          );
-        })}
-      </div>
+      <GrowthCard state={state} today={today} onClaim={onClaimLogin} onOpen={onGrowth} storageError={storageError} />
+
+      <button className="abacus-home-invite" onClick={onStudy}><span aria-hidden="true">🧮</span><span><strong>1〜100のそろばん</strong><small>れんしゅう・1分チャレンジで、お部屋のぬいぐるみをゲット！</small></span><b aria-hidden="true">→</b></button>
+
+      <MyRoom state={state} onUpdate={onUpdateRoom} onPlay={onPlay} onStudy={onStudy} />
 
       {/* ふきだし */}
       <div
@@ -92,7 +51,7 @@ export default function HomeScreen({ state, onPlay, onEncyclopedia, onGacha, onS
         style={{ boxShadow: 'var(--shadow-md)' }}
       >
         <div className="flex justify-between text-sm font-bold mb-2" style={{ color: 'var(--pink-600)' }}>
-          <span>シール帳</span>
+          <span>シールずかん</span>
           <span>{owned}/{total}まい</span>
         </div>
         <div className="w-full rounded-full h-3.5 overflow-hidden" style={{ background: 'var(--pink-100)' }}>
@@ -126,14 +85,14 @@ export default function HomeScreen({ state, onPlay, onEncyclopedia, onGacha, onS
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
-                  width: `${((state.level ?? 1) / 50) * 100}%`,
+                  width: `${((state.level ?? 1) / TOTAL_LEVELS) * 100}%`,
                   background: 'linear-gradient(90deg, var(--pink-300), var(--pink-500))',
                 }}
               />
             </div>
           </div>
           <div className="text-xs font-bold whitespace-nowrap" style={{ color: '#9ca3af' }}>
-            {state.level ?? 1}/50
+            {state.level ?? 1}/{TOTAL_LEVELS}
           </div>
         </div>
       </div>
@@ -181,7 +140,7 @@ export default function HomeScreen({ state, onPlay, onEncyclopedia, onGacha, onS
               boxShadow: '0 4px 0 var(--purple-600), var(--shadow-glow-purple)',
             }}
           >
-            シール帳
+            シールずかん
           </button>
           <button
             onClick={onGacha}

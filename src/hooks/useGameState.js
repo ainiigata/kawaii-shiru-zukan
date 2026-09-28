@@ -1,12 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
-import { GACHA_COST, SQUEEZE_GACHA_COST } from '../utils/gameLogic.js';
+import { GACHA_COST, SQUEEZE_GACHA_COST, TOTAL_LEVELS } from '../utils/gameLogic.js';
 import { getSeriesValue, STICKERS } from '../data/stickers.js';
 
-const KEY = 'sticker-book-v1';
+import useLocalDate from './useLocalDate.js';
+import { initializeGrowth, registerVisit, claimLoginBonus as applyLoginBonus } from '../utils/growthProgress.js';
+import { localDateKey } from '../data/room.js';
+import { applySessionResult } from '../utils/sessionProgress.js';
+import { ROOM_THEMES, ROOM_DECORATIONS, STARTER_BUDDIES } from '../data/room.js';
+import { reconcileRoomItems, recordAbacusStudy, setPlacedRoomItems } from '../utils/roomItemProgress.js';
+
+const KEY = 'sticker-book-v2';
+const KEY_V1 = 'sticker-book-v1';
 
 const stickerSeriesMap = Object.fromEntries(STICKERS.map(s => [s.id, s.series]));
 
 const DEFAULT_STATE = {
+  buddyId: STARTER_BUDDIES[0],
+  roomTheme: 'rose',
+  roomDecorations: [],
+  daily: null,
+  examRecords: {},
+  lastSessionId: null,
+  abacusRecords: { sessions: [] },
+  roomItems: { earned: {}, placed: [] },
   level: 1,
   coins: 100,
   stickerCounts: {},   // { [stickerId]: number } 枚数管理
@@ -16,7 +32,7 @@ const DEFAULT_STATE = {
   bestCombo: 0,
   totalPlayed: 0,
   levelPlayCount: {},
-  bookPages: [[], [], [], [], []],
+  bookPages: Array.from({ length: 10 }, () => ({ placed: [], colorIndex: 0, decos: [] })),
 };
 
 // stickerCounts から「所持している（count>=1）シールID配列」を導出
@@ -38,6 +54,19 @@ function migrateState(parsed) {
   return { ...parsed, stickerCounts };
 }
 
+function normalizeBookPages(rawPages) {
+  return Array.from({ length: 10 }, (_, i) => {
+    const page = Array.isArray(rawPages) ? rawPages[i] : undefined;
+    if (Array.isArray(page)) return { placed: page, colorIndex: i % 5, decos: [] };
+    if (!page || typeof page !== 'object') return { placed: [], colorIndex: 0, decos: [] };
+    return {
+      placed: Array.isArray(page.placed) ? page.placed : [],
+      colorIndex: Number.isInteger(page.colorIndex) ? page.colorIndex : 0,
+      decos: Array.isArray(page.decos) ? page.decos : [],
+    };
+  });
+}
+
 export function getLevelCoinMultiplier(playCount) {
   if (playCount === 0) return 1.0;
   if (playCount === 1) return 0.75;
@@ -46,13 +75,30 @@ export function getLevelCoinMultiplier(playCount) {
 }
 
 export function useGameState() {
+  const today = useLocalDate();
+  const [storageError, setStorageError] = useState(false);
   const [state, setState] = useState(() => {
+    const load = () => {
     try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) return DEFAULT_STATE;
+      // 公開済みv1のシール配置を新しい10ページ形式へ変換し、収集や記録も引き継ぐ。
+      const rawV2 = localStorage.getItem(KEY);
+      if (!rawV2) {
+        const rawV1 = localStorage.getItem(KEY_V1);
+        if (rawV1) {
+          const v1 = migrateState(JSON.parse(rawV1));
+          const level = (typeof v1.level === 'number' && v1.level >= 1 && v1.level <= TOTAL_LEVELS) ? v1.level : DEFAULT_STATE.level;
+          const coins = (typeof v1.coins === 'number' && v1.coins >= 0) ? v1.coins : DEFAULT_STATE.coins;
+          const stickerCounts = (typeof v1.stickerCounts === 'object' && v1.stickerCounts !== null) ? v1.stickerCounts : DEFAULT_STATE.stickerCounts;
+          const squeezeCounts = (typeof v1.squeezeCounts === 'object' && v1.squeezeCounts !== null) ? v1.squeezeCounts : DEFAULT_STATE.squeezeCounts;
+          return { ...DEFAULT_STATE, ...v1, level, coins, stickerCounts, squeezeCounts,
+            bookPages: normalizeBookPages(v1.bookPages) };
+        }
+        return DEFAULT_STATE;
+      }
+      const raw = rawV2;
       const parsed = JSON.parse(raw);
       const migrated = migrateState(parsed);
-      const level = (typeof migrated.level === 'number' && migrated.level >= 1 && migrated.level <= 50)
+      const level = (typeof migrated.level === 'number' && migrated.level >= 1 && migrated.level <= TOTAL_LEVELS)
         ? migrated.level : DEFAULT_STATE.level;
       const coins = (typeof migrated.coins === 'number' && migrated.coins >= 0)
         ? migrated.coins : DEFAULT_STATE.coins;
@@ -60,11 +106,16 @@ export function useGameState() {
         ? migrated.stickerCounts : DEFAULT_STATE.stickerCounts;
       const squeezeCounts = (typeof migrated.squeezeCounts === 'object' && migrated.squeezeCounts !== null)
         ? migrated.squeezeCounts : DEFAULT_STATE.squeezeCounts;
-      const bookPages = Array.isArray(migrated.bookPages) && migrated.bookPages.length === 5
-        ? migrated.bookPages : DEFAULT_STATE.bookPages;
+      const bookPages = normalizeBookPages(migrated.bookPages);
       return { ...DEFAULT_STATE, ...migrated, level, coins, stickerCounts, squeezeCounts, bookPages };
     } catch { return DEFAULT_STATE; }
+    };
+    return reconcileRoomItems(initializeGrowth(load()), localDateKey()).state;
   });
+
+  useEffect(() => {
+    setState(s => registerVisit(s, today));
+  }, [today]);
 
   // collectionはstickerCountsから導出してstateに含める（既存コードとの互換性）
   const stateWithCollection = {
@@ -76,7 +127,7 @@ export function useGameState() {
   useEffect(() => {
     // localStorageにはカウントのみ保存（導出値collection/squeezeCollectionは保存しない）
     const { collection: _col, squeezeCollection: _sq, ...toSave } = stateWithCollection;
-    localStorage.setItem(KEY, JSON.stringify(toSave));
+    try { localStorage.setItem(KEY, JSON.stringify(toSave)); setStorageError(false); } catch { setStorageError(true); }
   }, [state]);
 
   function addCoins(n) {
@@ -88,7 +139,7 @@ export function useGameState() {
   }
 
   function levelUp() {
-    setState(s => ({ ...s, level: Math.min(s.level + 1, 50) }));
+    setState(s => ({ ...s, level: Math.min(s.level + 1, TOTAL_LEVELS) }));
   }
 
   function saveStars(lvl, stars) {
@@ -179,17 +230,54 @@ export function useGameState() {
     return exchangeResultRef.current;
   }
 
-  function updateBookPage(pageIndex, placed) {
-    if (pageIndex < 0 || pageIndex >= 5) return;
+  function updateBookPage(pageIndex, update) {
+    if (pageIndex < 0 || pageIndex >= 10) return;
     setState(s => {
       const newPages = [...s.bookPages];
-      newPages[pageIndex] = placed;
+      newPages[pageIndex] = { ...newPages[pageIndex], ...update };
       return { ...s, bookPages: newPages };
+    });
+  }
+
+  function completeSession(result) {
+    const date = localDateKey();
+    setState(s => reconcileRoomItems(applySessionResult(s, result, date), date, 'flash').state);
+  }
+
+  function completeAbacusStudy(result) {
+    const date = localDateKey();
+    const previous = latestStateRef.current;
+    const predicted = recordAbacusStudy(previous, result, date);
+    if (predicted.state === previous) return { newItems: [], reward: 0 };
+    latestStateRef.current = predicted.state;
+    setState(s => recordAbacusStudy(s, result, date).state);
+    return { newItems: predicted.newItems, reward: predicted.state.abacusRecords?.sessions?.at(-1)?.reward ?? 0 };
+  }
+
+  function claimLoginBonus() {
+    const date = localDateKey();
+    setState(s => applyLoginBonus(s, date));
+  }
+
+  function updateRoom(update) {
+    setState(s => {
+      const next = { ...s };
+      if (ROOM_THEMES.some(t => t.id === update.roomTheme)) next.roomTheme = update.roomTheme;
+      if (STARTER_BUDDIES.includes(update.buddyId)) next.buddyId = update.buddyId;
+      if (Array.isArray(update.roomDecorations)) next.roomDecorations = [...new Set(update.roomDecorations)].filter(id =>
+        ROOM_DECORATIONS.some(d => d.id === id && s.totalPlayed >= d.sessions));
+      return Array.isArray(update.roomPlacedItems) ? setPlacedRoomItems(next, update.roomPlacedItems) : next;
     });
   }
 
   return {
     state: stateWithCollection,
+    today,
+    storageError,
+    claimLoginBonus,
+    completeSession,
+    completeAbacusStudy,
+    updateRoom,
     addCoins,
     spendCoins,
     levelUp,

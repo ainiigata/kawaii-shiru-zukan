@@ -1,19 +1,22 @@
 import { useState } from 'react';
 import StickerBookPage from '../components/StickerBookPage.jsx';
 
-const TOTAL_PAGES = 5;
+const TOTAL_PAGES = 10;
 
 export default function StickerBookScreen({ state, onBack, onUpdatePage }) {
   const [pageIndex, setPageIndex] = useState(0);
-  const placed = state.bookPages?.[pageIndex] ?? [];
+  const pageData = state.bookPages?.[pageIndex] ?? { placed: [], colorIndex: 0, decos: [] };
+  const placed = Array.isArray(pageData) ? pageData : (pageData.placed ?? []);
+  const colorIndex = Array.isArray(pageData) ? 0 : (pageData.colorIndex ?? 0);
+  const decos = Array.isArray(pageData) ? [] : (pageData.decos ?? []);
 
   return (
     <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(168deg, #fdf2f8 0%, #fce7f3 40%, #f5f0ff 100%)' }}>
 
       {/* ヘッダー */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '8px 12px',
         background: 'rgba(253,242,248,0.9)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
@@ -24,26 +27,24 @@ export default function StickerBookScreen({ state, onBack, onUpdatePage }) {
           onClick={onBack}
           aria-label="もどる"
           style={{
-            width: 36, height: 36, borderRadius: '50%',
+            width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
             background: 'white', border: '1.5px solid var(--pink-200)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, cursor: 'pointer', boxShadow: 'var(--shadow-sm)',
+            fontSize: 16, cursor: 'pointer', boxShadow: 'var(--shadow-sm)',
           }}
         >←</button>
-        <h2 style={{ fontWeight: 900, fontSize: '1.1rem', margin: 0, color: 'var(--pink-800)' }}>
-          シールブック
-        </h2>
 
-        {/* ページナビ（ヘッダー内） */}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+        {/* ページナビ（横スクロール） */}
+        <div style={{ flex: 1, overflowX: 'auto', display: 'flex', gap: 5, paddingBottom: 2 }}>
           {Array.from({ length: TOTAL_PAGES }, (_, i) => (
             <button
               key={i}
               onClick={() => setPageIndex(i)}
               style={{
-                width: 30, height: 30, borderRadius: '50%',
-                border: 'none', cursor: 'pointer',
-                fontWeight: 900, fontSize: '0.75rem',
+                flexShrink: 0,
+                width: 28, height: 28, borderRadius: '50%',
+                cursor: 'pointer',
+                fontWeight: 900, fontSize: '0.72rem',
                 background: i === pageIndex
                   ? 'linear-gradient(135deg, var(--pink-400), var(--pink-500))'
                   : 'white',
@@ -64,8 +65,12 @@ export default function StickerBookScreen({ state, onBack, onUpdatePage }) {
         <StickerBookPage
           pageIndex={pageIndex}
           placed={placed}
+          colorIndex={colorIndex}
+          decos={decos}
           collection={state.collection}
-          onUpdate={newPlaced => onUpdatePage(pageIndex, newPlaced)}
+          onUpdate={newPlaced => onUpdatePage(pageIndex, { placed: newPlaced })}
+          onUpdateColor={ci => onUpdatePage(pageIndex, { colorIndex: ci })}
+          onUpdateDecos={newDecos => onUpdatePage(pageIndex, { decos: newDecos })}
         />
       </div>
     </div>

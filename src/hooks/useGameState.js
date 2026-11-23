@@ -8,6 +8,7 @@ import { localDateKey } from '../data/room.js';
 import { applySessionResult } from '../utils/sessionProgress.js';
 import { ROOM_THEMES, ROOM_DECORATIONS, STARTER_BUDDIES } from '../data/room.js';
 import { reconcileRoomItems, recordAbacusStudy, setPlacedRoomItems } from '../utils/roomItemProgress.js';
+import { collectWorksheetRewards } from '../utils/worksheetProgress.js';
 
 const KEY = 'sticker-book-v2';
 const KEY_V1 = 'sticker-book-v1';
@@ -74,7 +75,9 @@ export function getLevelCoinMultiplier(playCount) {
   return 0.3;
 }
 
-export function useGameState() {
+const EMPTY_WORKSHEET_HISTORY = [];
+
+export function useGameState(worksheetHistory = EMPTY_WORKSHEET_HISTORY) {
   const today = useLocalDate();
   const [storageError, setStorageError] = useState(false);
   const [state, setState] = useState(() => {
@@ -110,12 +113,17 @@ export function useGameState() {
       return { ...DEFAULT_STATE, ...migrated, level, coins, stickerCounts, squeezeCounts, bookPages };
     } catch { return DEFAULT_STATE; }
     };
-    return reconcileRoomItems(initializeGrowth(load()), localDateKey()).state;
+    const restored = reconcileRoomItems(initializeGrowth(load()), localDateKey()).state;
+    return collectWorksheetRewards(restored, worksheetHistory);
   });
 
   useEffect(() => {
     setState(s => registerVisit(s, today));
   }, [today]);
+
+  useEffect(() => {
+    setState(s => collectWorksheetRewards(s, worksheetHistory));
+  }, [worksheetHistory]);
 
   // collectionはstickerCountsから導出してstateに含める（既存コードとの互換性）
   const stateWithCollection = {
